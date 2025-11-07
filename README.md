@@ -5,10 +5,32 @@ It provides transparency by showing project details in a clean, modern interface
 
 ## Setup
 
-**To run GlenNOW** (Do not include the *)
+**To run GlenNOW**
 
-*cd GlenNOW*
 *npm install*
-*npx expo install react-native-screens react-native-safe-area-context @expo/vector-icons*
-*Start the Expo development server*
-*npx expo start*
+
+npx expo install @react-navigation/native
+
+npx expo install @react-navigation/stack
+
+npx expo install react-native-screens
+
+npx expo install react-native-safe-area-context
+
+npx expo install expo-linear-gradient
+
+npx expo install @expo/vector-icons
+
+npx expo install react-native-gesture-handler
+
+npx expo install react-native-reanimated
+
+npx expo install @react-native-async-storage/async-storage
+
+npx expo install expo-linking
+
+npx expo install expo-font 
+
+npx expo install expo-file-system
+
+*npm start*
