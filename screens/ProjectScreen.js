@@ -1,31 +1,54 @@
 // screens/ProjectScreen.js
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
+  FlatList,
+  Switch,
+  Share,
   Alert,
   Linking,
-  FlatList,
-  Share
+  Dimensions,
+  ScrollView
 } from "react-native";
-import GlassCard from "../components/GlassCard";
-import Timeline from "../components/Timeline";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { loadProjects, saveProjects } from "../storage/projectStorage";
+import Timeline from "../components/Timeline";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
+const scale = width / 375;
 
 export default function ProjectScreen({ route, navigation }) {
-  const { project, isAdmin } = route.params || { isAdmin: false };
+  const { project, isAdmin: initialAdmin } = route.params || { isAdmin: false };
+  const [darkMode, setDarkMode] = useState(false);
+  const [isAdmin] = useState(initialAdmin);
 
-  async function contactDev() {
+  useEffect(() => {
+    const loadTheme = async () => {
+      const savedTheme = await AsyncStorage.getItem("darkMode");
+      setDarkMode(savedTheme === "true");
+    };
+    loadTheme();
+  }, []);
+
+  const toggleDarkMode = async () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    await AsyncStorage.setItem("darkMode", newMode.toString());
+  };
+
+  const contactDev = async () => {
     if (!project.contactEmail) return Alert.alert("No contact", "No developer email provided.");
     const mailto = `mailto:${project.contactEmail}`;
     Linking.openURL(mailto).catch(() => Alert.alert("Error", "Could not open mail app."));
-  }
+  };
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     Alert.alert("Delete", `Delete "${project.title}"?`, [
       { text: "Cancel", style: "cancel" },
       {
@@ -37,112 +60,118 @@ export default function ProjectScreen({ route, navigation }) {
             const newList = (list || []).filter((p) => p.id !== project.id);
             await saveProjects(newList);
             navigation.navigate("Home");
-          } catch (e) {
+          } catch {
             Alert.alert("Error", "Could not delete project.");
           }
-        }
-      }
+        },
+      },
     ]);
-  }
+  };
 
-  async function exportProject() {
+  const exportProject = async () => {
     try {
-      const text =
-        `GlenNOW Project Export\n\nTitle: ${project.title}\n\nDescription:\n${project.description}\n\nContact: ${project.contactEmail}\n\nSources:\n${(project.sources || []).join("\n")}\n\nCreated: ${project.createdAt}\nLast edited: ${project.updatedAt}\n`;
+      const text = `GlenNOW Project Export\n\nTitle: ${project.title}\n\nDescription:\n${project.description}\n\nContact: ${project.contactEmail}\n\nSources:\n${(project.sources || []).join(
+        "\n"
+      )}\n\nCreated: ${project.createdAt}\nLast edited: ${project.updatedAt}\n`;
       await Share.share({ message: text, title: `GlenNOW_${project.title}.txt` });
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Could not export project.");
     }
-  }
+  };
 
-  function openSource(url) {
+  const openSource = (url) => {
     Linking.openURL(url).catch(() => Alert.alert("Error", "Unable to open link."));
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={20} color="#000" />
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {isAdmin ? (
-            <>
-              <TouchableOpacity onPress={() => navigation.navigate("Admin", { editProject: project })} style={[styles.iconBtn, styles.blackBtn]}>
-                <MaterialIcons name="edit" size={16} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={[styles.iconBtn, styles.whiteBtn]}>
-                <MaterialIcons name="delete" size={16} color="#000" />
-              </TouchableOpacity>
-            </>
-          ) : null}
-
-          <TouchableOpacity onPress={exportProject} style={[styles.iconBtn, styles.blackBtn]}>
-            <MaterialIcons name="file-download" size={16} color="#fff" />
+    <SafeAreaProvider>
+      <SafeAreaView edges={["top"]} style={[styles.container, darkMode && styles.containerDark]}>
+        {/* Top Controls */}
+        <View style={styles.topRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <MaterialIcons name="arrow-back" size={28 * scale} color={darkMode ? "#fff" : "#000"} />
           </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <Switch value={darkMode} onValueChange={toggleDarkMode} />
         </View>
-      </View>
 
-      <GlassCard>
-        {project.images && project.images.length > 0 ? (
-          <FlatList
-            data={project.images}
-            horizontal
-            pagingEnabled
-            keyExtractor={(i, idx) => idx.toString()}
-            renderItem={({ item }) => <Image source={{ uri: item }} style={styles.hero} />}
-            showsHorizontalScrollIndicator={false}
-          />
-        ) : null}
-
-        <Text style={styles.title}>{project.title}</Text>
-
-        <Text style={styles.desc}>{project.description || "No description provided."}</Text>
-
-        <View style={{ marginTop: 12 }}>
-          <Text style={styles.label}>Sources</Text>
-          {project.sources?.length ? (
-            project.sources.map((s, idx) => (
-              <TouchableOpacity key={idx} onPress={() => openSource(s)} style={styles.source}>
-                <MaterialIcons name="check-circle" size={14} color="#000" />
-                <Text style={styles.sourceText}>{s}</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={{ color: "#666" }}>No sources</Text>
+        <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+          {/* Project Image */}
+          {project.images?.length > 0 && (
+            <FlatList
+              data={project.images}
+              horizontal
+              pagingEnabled
+              keyExtractor={(i, idx) => idx.toString()}
+              renderItem={({ item }) => <Image source={{ uri: item }} style={styles.hero} />}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 0 }}
+            />
           )}
-        </View>
 
-        <View style={{ marginTop: 12 }}>
-          <Text style={styles.label}>Contact</Text>
-          <TouchableOpacity onPress={contactDev} style={[styles.contactBtn, styles.blackBtn]}>
-            <MaterialIcons name="email" size={14} color="#fff" />
-            <Text style={styles.contactText}>{project.contactEmail || "No contact provided"}</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Title & Description directly under image */}
+          <View style={styles.content}>
+            <Text style={[styles.title, darkMode && styles.textDark]}>{project.title}</Text>
+            <Text style={[styles.desc, darkMode && styles.textDark]}>
+              {project.description || "No description provided."}
+            </Text>
 
-        <Timeline createdAt={project.createdAt} updatedAt={project.updatedAt} />
+            {/* Sources */}
+            <Text style={[styles.label, darkMode && styles.textDark]}>Sources</Text>
+            {project.sources?.length ? (
+              project.sources.map((s, idx) => (
+                <TouchableOpacity key={idx} onPress={() => openSource(s)} style={styles.source}>
+                  <MaterialIcons name="check-circle" size={16} color={darkMode ? "#fff" : "#000"} />
+                  <Text style={[styles.sourceText, darkMode && styles.textDark]}>{s}</Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={{ color: darkMode ? "#aaa" : "#666", marginBottom: 8 }}>No sources</Text>
+            )}
 
-        {project.inactive ? <Text style={styles.inactiveFooter}>This project is inactive.</Text> : null}
-      </GlassCard>
-    </View>
+            {/* Contact */}
+            <Text style={[styles.label, darkMode && styles.textDark]}>Contact</Text>
+            <TouchableOpacity onPress={contactDev} style={[styles.contactBtn, styles.blackBtn]}>
+              <MaterialIcons name="email" size={16} color="#fff" />
+              <Text style={styles.contactText}>{project.contactEmail || "No contact provided"}</Text>
+            </TouchableOpacity>
+
+            {/* Admin Actions */}
+            {isAdmin && (
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+                <TouchableOpacity onPress={handleDelete} style={[styles.iconBtn, styles.whiteBtn]}>
+                  <MaterialIcons name="delete" size={20 * scale} color="#000" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={exportProject} style={[styles.iconBtn, styles.blackBtn]}>
+                  <MaterialIcons name="file-download" size={20 * scale} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Timeline moved right after main content */}
+            <Timeline createdAt={project.createdAt} updatedAt={project.updatedAt} darkMode={darkMode} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  hero: { width: 320, height: 180, borderWidth: 1, borderColor: "#000", marginRight: 12 },
-  title: { color: "#111", fontSize: 20, fontWeight: "800", marginBottom: 6, fontFamily: "Arial" },
-  desc: { color: "#111", marginBottom: 8, fontFamily: "Arial" },
-  label: { color: "#111", fontSize: 13, marginBottom: 6, fontFamily: "Arial" },
-  source: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-  sourceText: { color: "#111", marginLeft: 8, textDecorationLine: "underline" },
-  contactBtn: { flexDirection: "row", alignItems: "center", padding: 8, borderRadius: 0, marginTop: 6 },
-  contactText: { color: "#fff", marginLeft: 8, fontWeight: "700", fontFamily: "Arial" },
-  iconBtn: { padding: 8, borderRadius: 0 },
-  blackBtn: { backgroundColor: "#000", borderWidth: 1, borderColor: "#000" },
-  whiteBtn: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#000" },
-  inactiveFooter: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#e0e0e0", color: "#111", fontWeight: "700", fontFamily: "Arial" }
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 16 },
+  containerDark: { backgroundColor: "#111" },
+  topRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  iconBtn: { padding: 8 },
+  hero: { width: width - 32, height: 180 * scale, borderRadius: 6, marginBottom: 2 },
+  content: { marginTop: 0 }, // directly under image
+  title: { fontSize: 22 * scale, fontWeight: "800", marginBottom: 2, color: "#111" },
+  desc: { fontSize: 14 * scale, marginBottom: 4, color: "#111" },
+  label: { fontSize: 14 * scale, fontWeight: "700", marginBottom: 2, color: "#111" },
+  source: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
+  sourceText: { fontSize: 14 * scale, marginLeft: 8, textDecorationLine: "underline", color: "#111" },
+  contactBtn: { flexDirection: "row", alignItems: "center", padding: 8, borderRadius: 6, marginTop: 2, backgroundColor: "#000" },
+  contactText: { color: "#fff", marginLeft: 8, fontWeight: "700" },
+  blackBtn: { backgroundColor: "#000", borderWidth: 1, borderColor: "#000", borderRadius: 6 },
+  whiteBtn: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#000", borderRadius: 6 },
+  textDark: { color: "#fff" },
 });
