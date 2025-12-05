@@ -155,7 +155,7 @@ export default function AdminScreen({ navigation, route }) {
                 <Text style={styles.whiteText}>Login</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setLoggedIn(true)} style={[styles.btn, styles.redBtn]}>
-                <Text style={styles.whiteText}>BYPASS [TESTING ONLY]</Text>
+                <Text style={styles.whiteText}>BYPASS</Text>
               </TouchableOpacity>
             </View>
 

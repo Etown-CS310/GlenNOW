@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { loadProjects, saveProjects } from "../storage/projectStorage";
 import Timeline from "../components/Timeline";
+import RequestModal from "../components/RequestModal";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
@@ -27,6 +28,7 @@ export default function ProjectScreen({ route, navigation }) {
   const { project, isAdmin: initialAdmin } = route.params || { isAdmin: false };
   const [darkMode, setDarkMode] = useState(false);
   const [isAdmin] = useState(initialAdmin);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -95,6 +97,14 @@ export default function ProjectScreen({ route, navigation }) {
           <Switch value={darkMode} onValueChange={toggleDarkMode} />
         </View>
 
+        {/* Request Edit Button */}
+        <TouchableOpacity
+          style={[styles.submitBtn, { marginBottom: 12 }]}
+          onPress={() => setShowEditModal(true)}
+        >
+          <Text style={styles.whiteText}>Request Edit</Text>
+        </TouchableOpacity>
+
         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
           {/* Project Image */}
           {project.images?.length > 0 && (
@@ -152,6 +162,14 @@ export default function ProjectScreen({ route, navigation }) {
             <Timeline createdAt={project.createdAt} updatedAt={project.updatedAt} darkMode={darkMode} />
           </View>
         </ScrollView>
+
+        <RequestModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={() => alert("Edit request submitted!")}
+          title={`Edit Request: ${project.title}`}
+          fields={[{ name: "message", label: "What should be changed?", placeholder: "Enter your note", multiline: true }]}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -169,9 +187,11 @@ const styles = StyleSheet.create({
   label: { fontSize: 14 * scale, fontWeight: "700", marginBottom: 2, color: "#111" },
   source: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
   sourceText: { fontSize: 14 * scale, marginLeft: 8, textDecorationLine: "underline", color: "#111" },
-  contactBtn: { flexDirection: "row", alignItems: "center", padding: 8, borderRadius: 6, marginTop: 2, backgroundColor: "#000" },
+  contactBtn: { flexDirection: "row", alignItems: "center", padding: 8, borderRadius: 6, marginTop: 2 },
   contactText: { color: "#fff", marginLeft: 8, fontWeight: "700" },
   blackBtn: { backgroundColor: "#000", borderWidth: 1, borderColor: "#000", borderRadius: 6 },
   whiteBtn: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#000", borderRadius: 6 },
   textDark: { color: "#fff" },
+  submitBtn: { backgroundColor: "#000", padding: 10, borderRadius: 6, alignItems: "center", marginBottom: 8 },
+  whiteText: { color: "#fff", fontWeight: "700" },
 });
