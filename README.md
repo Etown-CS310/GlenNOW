@@ -45,6 +45,9 @@ GlenNOW is a mobile app that allows users to explore projects in Watkins Glen, r
 5. **Local Storage:**  
    All project data and requests are saved locally using AsyncStorage, ensuring offline accessibility.  
 
+6. **Admin Panel:**  
+   Add projects for the user to discover. Can make updates to the site banner and remove projects.
+
 ---
 
 ## Mobile App Architecture
@@ -101,7 +104,7 @@ Other UI Libraries – GlassCard, Timeline, RequestModal components
 
 No external APIs are used; all data is handled locally.
 
-Native Device Features
+### Native Device Features
 Email: Users can send project edit requests or contact developers via the device's email client.
 
 Storage: AsyncStorage allows offline access and local saving of requests.
